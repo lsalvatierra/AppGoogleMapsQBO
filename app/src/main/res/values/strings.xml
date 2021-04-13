@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AppGoogleMapsQBO</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="valbtnmapst">VER MAPA</string>
+</resources>
