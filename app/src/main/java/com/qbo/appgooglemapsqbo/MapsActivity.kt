@@ -11,21 +11,20 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
-import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.gms.maps.model.*
+import com.google.maps.android.PolyUtil
+import com.qbo.appgooglemapsqbo.commom.AppMensaje
+import com.qbo.appgooglemapsqbo.commom.Constantes
+import com.qbo.appgooglemapsqbo.commom.TipoMensaje
 
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
         GoogleMap.OnMapClickListener,
-        GoogleMap.OnMarkerDragListener, LocationListener {
+        GoogleMap.OnMarkerDragListener, LocationListener, GoogleMap.OnPolygonClickListener {
 
     private lateinit var mMap: GoogleMap
     private var  lstLatLong = ArrayList<LatLng>()
     private lateinit var locationManager: LocationManager
-    private val LOCATION_REFRESH_TIME: Long = 10000
-    private val LOCATION_REFRESH_DISTANCE: Float = 10F
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,6 +73,36 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
         } catch (e: SecurityException) {
             Toast.makeText(applicationContext, "Error activando Ubicación", Toast.LENGTH_LONG).show()
         }
+        agregarPoligono()
+    }
+
+    private fun agregarPoligono(){
+        // Add polygons to indicate areas on the map.
+        val polygon1 = mMap.addPolygon(
+            PolygonOptions()
+                .clickable(true)
+                .add(
+                    LatLng(-12.114093, -77.036811),
+                    LatLng(-12.113846, -77.029859),
+                    LatLng(-12.118865, -77.029087),
+                    LatLng(-12.118912, -77.036962)))
+        // Store a data object with the polygon, used here to indicate an arbitrary type.
+        polygon1.tag = "alpha"
+        polygon1.strokeColor = -0xc771c4
+        //polygon1.fillColor = -0x7e387c
+
+        mMap.setOnPolygonClickListener(this)
+        //Validar si un punto X se encuentra dentro del polígono
+        //Utilizamos la libreria https://github.com/googlemaps/android-maps-utils
+        var inside = PolyUtil.containsLocation(LatLng(-12.114872, -77.033678), polygon1.points, false)
+        val mensaje = if(inside){
+            "El punto buscando se encuentra dentro del polígono"
+        }else{
+            "El punto buscando NO se encuentra dentro del polígono"
+        }
+        Toast.makeText(applicationContext,
+            mensaje,
+            Toast.LENGTH_LONG).show()
     }
 
     private fun obtenerUbicacion(){
@@ -84,7 +113,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
              * El tiempo en milisegundos cuando debe actualizar, La distancia en metros cuando
              * debe cambiar y la interfaz LocationListener this ya esta clase la implementa. */
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                    LOCATION_REFRESH_TIME, LOCATION_REFRESH_DISTANCE, this)
+                   Constantes.LOCATION_REFRESH_TIME, Constantes.LOCATION_REFRESH_DISTANCE, this)
         }catch (ex: SecurityException){
             Toast.makeText(applicationContext,
                     "Error mostrando la unicacion",
@@ -94,8 +123,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
 
     override fun onMapClick(p0: LatLng?) {
         mMap.addMarker(
-                MarkerOptions().position(p0!!)
-                        .title("Nuevo marcador")
+                MarkerOptions()
+                    .position(p0!!)
+                    .title("Nuevo marcador")
+                    //.draggable(true)
         )
         lstLatLong.add(p0)
         val p = PolylineOptions()
@@ -111,13 +142,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
     }
 
     override fun onMarkerDrag(p0: Marker?) {
-        var posicion = p0!!.position
-        p0!!.snippet = posicion.latitude.toString() + " - "+ posicion.longitude.toString()
-        p0!!.showInfoWindow()
+
     }
 
     override fun onMarkerDragEnd(p0: Marker?) {
-        TODO("Not yet implemented")
+        var posicion = p0!!.position
+        p0!!.snippet = posicion.latitude.toString() + " - "+ posicion.longitude.toString()
+        p0!!.showInfoWindow()
+        mMap.animateCamera(CameraUpdateFactory.newLatLng(p0!!.position))
     }
 
 
@@ -128,7 +160,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
     }
 
     /*Llamado cuando el estado del proveedor cambia. */
-
     override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
 
     }
@@ -141,5 +172,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
     /*Llamado cuando el proveedor es deshabilitado por el usuario. */
     override fun onProviderDisabled(provider: String?) {
 
+    }
+
+    override fun onPolygonClick(p0: Polygon?) {
+        // Flip the values of the red, green, and blue components of the polygon's color.
+        var color = p0!!.strokeColor xor -0xa80e9
+        p0!!.strokeColor = color
+        color = p0.fillColor xor -0xa80e9
+        p0.fillColor = color
     }
 }
